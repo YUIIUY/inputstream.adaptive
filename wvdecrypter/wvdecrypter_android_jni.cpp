@@ -385,6 +385,7 @@ WV_CencSingleSampleDecrypter::WV_CencSingleSampleDecrypter(WV_DRM &drm, AP4_Data
   if (optionalKeyParameter)
     optParams_["PRCustomData"] = optionalKeyParameter;
 
+  Log(SSD_HOST::LL_DEBUG, "Before openSession");
   session_id_ = media_drm_.GetMediaDrm()->openSession();
   if (xbmc_jnienv()->ExceptionCheck())
   {
@@ -392,6 +393,7 @@ WV_CencSingleSampleDecrypter::WV_CencSingleSampleDecrypter(WV_DRM &drm, AP4_Data
     xbmc_jnienv()->ExceptionClear();
     return;
   }
+  Log(SSD_HOST::LL_DEBUG, "After openSession");
 
   if (session_id_.size() == 0)
   {
