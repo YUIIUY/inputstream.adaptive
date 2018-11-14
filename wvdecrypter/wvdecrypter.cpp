@@ -434,7 +434,10 @@ WV_DRM::WV_DRM(const char* licenseURL, const AP4_DataBuffer &serverCert, const u
   }
 
   if (serverCert.GetDataSize())
+  {
+    Log(SSD_HOST::LL_DEBUG, "Providing server certificate with size %lu", serverCert.GetDataSize());
     wv_adapter->SetServerCertificate(0, serverCert.GetData(), serverCert.GetDataSize());
+  }
 
   // For backward compatibility: If no | is found in URL, make the amazon convention out of it
   if (license_url_.find('|') == std::string::npos)
@@ -700,8 +703,9 @@ bool WV_CencSingleSampleDecrypter::SendSessionMessage()
   void* file = host->CURLCreate(blocks[0].c_str());
 
   size_t nbRead;
-  std::string response, resLimit;
+  std::string response, resLimit, contentType;
   char buf[2048];
+  bool serverCertRequest, binaryResponse;
 
   //Set our std headers
   host->CURLAddOption(file, SSD_HOST::OPTION_PROTOCOL, "acceptencoding", "gzip, deflate");
@@ -823,6 +827,7 @@ bool WV_CencSingleSampleDecrypter::SendSessionMessage()
     host->CURLAddOption(file, SSD_HOST::OPTION_PROTOCOL, "postdata", decoded.c_str());
   }
 
+  serverCertRequest = challenge_.GetDataSize() == 2;
   challenge_.SetDataSize(0);
 
   if (!host->CURLOpen(file))
@@ -836,6 +841,8 @@ bool WV_CencSingleSampleDecrypter::SendSessionMessage()
     response += std::string((const char*)buf, nbRead);
 
   resLimit = host->CURLGetProperty(file, SSD_HOST::CURLPROPERTY::PROPERTY_HEADER, "X-Limit-Video");
+  contentType = host->CURLGetProperty(file, SSD_HOST::CURLPROPERTY::PROPERTY_HEADER, "Content-Type");
+
   if (!resLimit.empty())
   {
     std::string::size_type posMax = resLimit.find("max=", 0);
@@ -864,7 +871,11 @@ bool WV_CencSingleSampleDecrypter::SendSessionMessage()
     Log(SSD_HOST::LL_DEBUG, "%s: could not open debug file for writing (response)!", __func__);
 #endif
 
-  if (!blocks[3].empty())
+  Log(SSD_HOST::LL_DEBUG, "Checking for server certificate: SCR:%d, CT:%s", (int)serverCertRequest, contentType.c_str());
+  if (serverCertRequest && contentType.find("application/octet-stream") == std::string::npos)
+    serverCertRequest = false;
+
+  if (!blocks[3].empty() && !serverCertRequest)
   {
     if (blocks[3][0] == 'J')
     {
