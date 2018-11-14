@@ -546,7 +546,7 @@ void CdmAdapter::OnDeferredInitializationDone(cdm::StreamType stream_type,
 // The CDM owns the returned object and must call FileIO::Close() to release it.
 cdm::FileIO* CdmAdapter::CreateFileIO(cdm::FileIOClient* client)
 {
-  return new CdmFileIoImpl(cdm_base_path_, client);
+  return new CdmFileIoImpl(cdm_base_path_, client, this);
 }
 
 
@@ -585,9 +585,10 @@ void CdmAdapter::OnInitialized(bool success)
 
 /*******************************         CdmFileIoImpl        ****************************************/
 
-CdmFileIoImpl::CdmFileIoImpl(std::string base_path, cdm::FileIOClient* client)
+CdmFileIoImpl::CdmFileIoImpl(std::string base_path, cdm::FileIOClient* client, CdmAdapter *adapter)
   : base_path_(base_path)
   , client_(client)
+  , adapter_(adapter)
   , file_descriptor_(0)
   , data_buffer_(0)
   , opened_(false)
@@ -629,6 +630,11 @@ void CdmFileIoImpl::Read()
     }
   } else
     status = cdm::FileIOClient::kSuccess;
+
+  char strFmt[1024];
+  sprintf(strFmt, "CdmFileIoImpl::Read status:%d, path:%s, size:%lu", status, base_path_.c_str(), sz);
+  adapter_->GetClient()->CDMLog(strFmt);
+
   client_->OnReadComplete(status, data_buffer_, sz);
 }
 
@@ -642,6 +648,11 @@ void CdmFileIoImpl::Write(const uint8_t* data, uint32_t data_size)
     if (fwrite(data, 1, data_size, file_descriptor_) == data_size)
       status = cdm::FileIOClient::kSuccess;
   }
+
+  char strFmt[1024];
+  sprintf(strFmt, "CdmFileIoImpl::Write status:%d, path:%s, size:%lu", status, base_path_.c_str(), data_size);
+  adapter_->GetClient()->CDMLog(strFmt);
+
   client_->OnWriteComplete(status);
 }
 

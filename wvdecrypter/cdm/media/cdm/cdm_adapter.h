@@ -47,6 +47,7 @@ class CdmAdapter : public std::enable_shared_from_this<CdmAdapter>
     CdmAdapterClient *client);
 
 	void RemoveClient();
+  CdmAdapterClient * GetClient() { return client_; };
 
 	void SetServerCertificate(uint32_t promise_id,
 		const uint8_t* server_certificate_data,
@@ -217,7 +218,7 @@ private:
 class CdmFileIoImpl : NON_EXPORTED_BASE(public cdm::FileIO)
 {
 public:
-  CdmFileIoImpl(std::string base_path, cdm::FileIOClient* client);
+  CdmFileIoImpl(std::string base_path, cdm::FileIOClient* client, CdmAdapter *adapter);
 
   virtual void Open(const char* file_name, uint32_t file_name_size) override;
   virtual void Read() override;
@@ -227,6 +228,7 @@ public:
 private:
   std::string base_path_;
   cdm::FileIOClient* client_;
+  CdmAdapter *adapter_;
   FILE *file_descriptor_;
   uint8_t *data_buffer_;
   bool opened_;

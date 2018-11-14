@@ -1129,7 +1129,10 @@ AP4_Result WV_CencSingleSampleDecrypter::DecryptSampleData(AP4_UI32 pool_id,
   }
 
   if (!fragInfo.key_)
+  {
+    Log(SSD_HOST::LL_DEBUG, "DecryptSampleData: No Key");
     return AP4_ERROR_INVALID_PARAMETERS;
+  }
 
   // the output has the same size as the input
   data_out.SetDataSize(data_in.GetDataSize());
@@ -1140,7 +1143,9 @@ AP4_Result WV_CencSingleSampleDecrypter::DecryptSampleData(AP4_UI32 pool_id,
   // check input parameters
   if (iv == NULL) return AP4_ERROR_INVALID_PARAMETERS;
   if (subsample_count) {
-    if (bytes_of_cleartext_data == NULL || bytes_of_encrypted_data == NULL) {
+    if (bytes_of_cleartext_data == NULL || bytes_of_encrypted_data == NULL)
+    {
+      Log(SSD_HOST::LL_DEBUG, "DecryptSampleData: inputparams invalid");
       return AP4_ERROR_INVALID_PARAMETERS;
     }
   }
@@ -1229,6 +1234,13 @@ AP4_Result WV_CencSingleSampleDecrypter::DecryptSampleData(AP4_UI32 pool_id,
       memcpy(data_out.UseData() + absPos, decrypt_out_.GetData() + cipherPos, bytes_of_encrypted_data[i]);
       absPos += bytes_of_encrypted_data[i], cipherPos += bytes_of_encrypted_data[i];
     }
+  }
+
+  if (ret != cdm::Status::kSuccess)
+  {
+    char buf[36]; buf[32] = 0;
+    AP4_FormatHex(fragInfo.key_, 16, buf);
+    Log(SSD_HOST::LL_DEBUG, "DecryptSampleData: Decrypt failed with error: %d and key: %s", ret, buf);
   }
 
   return (ret == cdm::Status::kSuccess) ? AP4_SUCCESS : AP4_ERROR_INVALID_PARAMETERS;
